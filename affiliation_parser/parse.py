@@ -3,11 +3,14 @@ import string
 from unidecode import unidecode
 import numpy as np
 from .keywords import *
+from .data_processor import us_cities, us_state_cities_map
 from nltk.tokenize import WhitespaceTokenizer
 
 w_tokenizer = WhitespaceTokenizer()
 punct_re = re.compile("[{}]".format(re.escape(string.punctuation)))
 
+US_CITIES = us_cities()
+US_STATE_CITY_MAP = us_state_cities_map()
 
 def preprocess(text: str):
     """
@@ -79,6 +82,30 @@ def find_country(location: str):
     return ""
 
 
+def find_state(affil_text: str):
+    """
+    Get U.S. state info. 
+    """
+    for state in STATES:
+        if state in affil_text: 
+            stripped_state = state.strip()
+            if len(stripped_state) == 2:
+                return stripped_state
+            else:
+                return STATE_MAP[stripped_state]
+    return ""
+
+
+def find_city(text: str, state = None):
+    for city in US_CITIES:
+        if city in text.upper():
+            if state and city not in US_STATE_CITY_MAP[state]:
+                continue 
+
+            return city 
+    return ""
+
+
 def check_country(affil_text: str):
     """
     Check if any states string from USA or UK
@@ -86,9 +113,6 @@ def check_country(affil_text: str):
     for country in ["UK"]:
         if country in affil_text:
             return "united kingdom"
-    for state in STATES:
-        if state in affil_text:
-            return "united states of america"
     return ""
 
 
@@ -121,13 +145,33 @@ def parse_zipcode(affil_text: str):
     return zip_code_group
 
 
-def parse_location(location):
+def parse_location(affil_text, location):
     """
     Parse location and country from affiliation string
     """
     location = re.sub(r"\.", "", location).strip()
     country = find_country(location)
-    dict_location = {"location": location.strip(), "country": country.strip()}
+
+    # First try state from location, if no luck, try from full text
+    state = find_state(location)
+    if not state:
+        state = find_state(affil_text)
+
+    # If there's a state, try to find a city
+    city = find_city(location, state) 
+    if not city:
+        city = find_city(affil_text, state)
+
+    # If we extracted a state, then 
+    if not country and state:
+        country = "united states of america"
+
+    dict_location = {
+        "location": location.strip(), 
+        "country": country.strip(),
+        "us_state": state,
+        "us_city": city,
+    }
     return dict_location
 
 
@@ -180,7 +224,7 @@ def parse_affil(affil_text):
                 departments.append(affil_list[i])
     department = ", ".join(departments)
 
-    dict_location = parse_location(location)
+    dict_location = parse_location(affil_text.strip(), location)
     affil = append_institution_city(affil, dict_location["location"])
 
     dict_out = {
