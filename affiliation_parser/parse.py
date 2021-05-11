@@ -1,16 +1,36 @@
+import logging
 import re
 import string
 from unidecode import unidecode
 import numpy as np
 from .keywords import *
-from .data_processor import us_cities, us_state_cities_map
+from .data_processor import us_cities, us_state_cities_map, us_city_pop_map
 from nltk.tokenize import WhitespaceTokenizer
 
 w_tokenizer = WhitespaceTokenizer()
 punct_re = re.compile("[{}]".format(re.escape(string.punctuation)))
 
 US_CITIES = us_cities()
+US_CITIES_SET = set(US_CITIES)
+US_CITIES_TOP_2000 = set(US_CITIES[:2000])
+US_CITIES_POP_MAP = us_city_pop_map()
 US_STATE_CITY_MAP = us_state_cities_map()
+MAX_WORDS = max(len(s.split()) for s in US_CITIES)
+
+
+def string_steps(s: str, max_size=MAX_WORDS):
+    string_words = s.upper().replace(',', '').replace('.', '').split()
+    final_set = set([])
+    for step in range(1, max_size+1):
+        for start in range(len(string_words)):
+            final_set.add(" ".join(string_words[start:start+step]))
+            if start + step > len(string_words):
+                break
+        if step > len(string_words):
+            break 
+
+
+    return final_set
 
 def preprocess(text: str):
     """
@@ -96,14 +116,29 @@ def find_state(affil_text: str):
     return ""
 
 
-def find_city(text: str, state = None):
-    for city in US_CITIES:
-        if city in text.upper():
-            if state and city not in US_STATE_CITY_MAP[state]:
-                continue 
+def find_cities(text: str, state = None):
+    city = ""
+    cities = US_CITIES_SET.intersection(string_steps(text))
+    if state:
+        city_ops = cities.intersection(US_STATE_CITY_MAP[state])
+    else:
+        city_ops = cities.intersection(US_CITIES_TOP_2000)
 
-            return city 
-    return ""
+    if len(city_ops) > 1:
+        logging.info(f"Extracted multiple city options={city_ops} for text={text}")
+    
+    if city_ops:
+        city = max(city_ops, key=lambda x: US_CITIES_POP_MAP[x])
+
+    return city
+
+    # for city in US_CITIES:
+    #     if city in text.upper():
+    #         if state and city not in US_STATE_CITY_MAP[state]:
+    #             continue 
+
+    #         return city 
+    # return ""
 
 
 def check_country(affil_text: str):
@@ -152,6 +187,8 @@ def parse_location(affil_text, location):
     """
     location = re.sub(r"\.", "", location).strip()
     country = find_country(location)
+    if not country:
+        country = find_country(affil_text)
 
     # First try state from location, if no luck, try from full text
     state = find_state(location)
@@ -159,13 +196,14 @@ def parse_location(affil_text, location):
         state = find_state(affil_text)
 
     # If there's a state, try to find a city
-    city = find_city(location, state) 
+    city = find_cities(location, state) 
     if not city:
-        city = find_city(affil_text, state)
+        city = find_cities(affil_text, state)
 
-    # If we extracted a state, then 
-    if not country and state:
-        country = "united states of america"
+    # If we extracted a state, then we're probably in the us
+    if not country:
+        if state or city in US_CITIES_TOP_2000:
+            country = "united states of america"
 
     dict_location = {
         "location": location.strip(), 

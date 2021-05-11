@@ -30,6 +30,19 @@ def us_cities():
 
     return cities
 
+def us_city_pop_map():
+    city_pop_map = {}
+    try:
+        # Load city data
+        with open_text(data, TOP1000_CITIES) as fp:
+            r = csv.reader(fp)
+            next(r)
+            for row in r:
+                city_pop_map[row[0].upper().strip().replace(".", "")] = float(row[2])
+    except Exception as e:
+        logger.error("Unable to load city information.")
+
+    return city_pop_map
 
 def us_state_cities_map() -> Dict[str, Set[str]]:
     """
