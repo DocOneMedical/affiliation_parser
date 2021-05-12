@@ -12,7 +12,7 @@ punct_re = re.compile("[{}]".format(re.escape(string.punctuation)))
 
 US_CITIES = us_cities()
 US_CITIES_SET = set(US_CITIES)
-US_CITIES_TOP_2000 = set(US_CITIES[:2000])
+US_CITIES_TOP_2000 = set(US_CITIES[:1000])
 US_CITIES_POP_MAP = us_city_pop_map()
 US_STATE_CITY_MAP = us_state_cities_map()
 MAX_WORDS = max(len(s.split()) for s in US_CITIES)
@@ -128,7 +128,7 @@ def find_cities(text: str, state = None):
         logging.info(f"Extracted multiple city options={city_ops} for text={text}")
     
     if city_ops:
-        city = max(city_ops, key=lambda x: US_CITIES_POP_MAP[x])
+        city = max(city_ops, key=lambda x: (len(x.split()), US_CITIES_POP_MAP[x]))
 
     return city
 
