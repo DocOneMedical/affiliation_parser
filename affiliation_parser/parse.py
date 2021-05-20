@@ -124,9 +124,7 @@ def find_cities(text: str, state = None):
     else:
         city_ops = cities.intersection(US_CITIES_TOP_2000)
 
-    if len(city_ops) > 1:
-        logging.info(f"Extracted multiple city options={city_ops} for text={text}")
-    
+    # TODO
     if city_ops:
         city = max(city_ops, key=lambda x: (len(x.split()), US_CITIES_POP_MAP[x]))
 
