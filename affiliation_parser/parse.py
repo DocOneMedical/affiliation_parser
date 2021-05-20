@@ -132,14 +132,6 @@ def find_cities(text: str, state = None):
 
     return city
 
-    # for city in US_CITIES:
-    #     if city in text.upper():
-    #         if state and city not in US_STATE_CITY_MAP[state]:
-    #             continue 
-
-    #         return city 
-    # return ""
-
 
 def check_country(affil_text: str):
     """
@@ -201,9 +193,8 @@ def parse_location(affil_text, location):
         city = find_cities(affil_text, state)
 
     # If we extracted a state, then we're probably in the us
-    if not country:
-        if state or city in US_CITIES_TOP_2000:
-            country = "united states of america"
+    if state or (not country and city in US_CITIES_TOP_2000):
+        country = "united states of america"
 
     dict_location = {
         "location": location.strip(), 
