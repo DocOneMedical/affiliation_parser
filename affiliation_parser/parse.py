@@ -3,8 +3,8 @@ import re
 import string
 from unidecode import unidecode
 import numpy as np
-from .keywords import *
-from .data_processor import us_cities, us_state_cities_map, us_city_pop_map
+from affiliation_parser.keywords import *
+from affiliation_parser.data_processor import us_cities, us_state_cities_map, us_city_pop_map
 from nltk.tokenize import WhitespaceTokenizer
 
 w_tokenizer = WhitespaceTokenizer()
@@ -110,25 +110,47 @@ def find_state(affil_text: str):
         if state in affil_text: 
             stripped_state = state.strip()
             if len(stripped_state) == 2:
-                return stripped_state
+                # For state abreviations, we require that they are not followed by some alphachar
+                if not re.search(f"{state}(?![a-zA-Z])", affil_text): continue 
+                return stripped_state, stripped_state
             else:
-                return STATE_MAP[stripped_state]
-    return ""
+                return STATE_MAP[stripped_state], stripped_state
+    return "", None
 
 
-def find_cities(text: str, state = None):
-    city = ""
+def find_cities(text: str, state = None, extracted_state = None):
     cities = US_CITIES_SET.intersection(string_steps(text))
     if state:
         city_ops = cities.intersection(US_STATE_CITY_MAP[state])
     else:
         city_ops = cities.intersection(US_CITIES_TOP_2000)
 
-    # TODO
-    if city_ops:
-        city = max(city_ops, key=lambda x: (len(x.split()), US_CITIES_POP_MAP[x]))
+    city_ops = {x for x in city_ops }
+    final_city_ops = set([])
+    # Filter out cities that are part of other cities 
+    for city in city_ops: 
+        for other_city in city_ops:
+            if other_city != city and city in other_city:
+                break 
+        else:
+            final_city_ops.add(city)
 
-    return city
+    city_ops = final_city_ops
+    # Option 1: No cities
+    if not city_ops:
+        return ""
+
+    # Option 2: Single city
+    if len(city_ops) == 1:
+        return city_ops.pop()
+    # If we didn't include extracted state + len of options is greater than 1, go back
+    elif not extracted_state:
+        return ""
+    else:
+        state_loc = text.rfind(extracted_state)
+        distances = {c: state_loc - text.upper().find(c) for c in city_ops}
+        distances = {c: v if v>= 1 else 5000 for c, v in distances.items()}
+        return max(city_ops, key=lambda x: (-distances.get(x, 0), len(x.split()), US_CITIES_POP_MAP[x]))
 
 
 def check_country(affil_text: str):
@@ -181,14 +203,13 @@ def parse_location(affil_text, location):
         country = find_country(affil_text)
 
     # First try state from location, if no luck, try from full text
-    state = find_state(location)
+    state, extracted_state = find_state(location)
     if not state:
-        state = find_state(affil_text)
-
-    # If there's a state, try to find a city
-    city = find_cities(location, state) 
+        state, extracted_state = find_state(affil_text)
+    
+    city = find_cities(location, state, None)
     if not city:
-        city = find_cities(affil_text, state)
+        city = find_cities(affil_text, state, extracted_state)
 
     # If we extracted a state, then we're probably in the us
     if state or (not country and city in US_CITIES_TOP_2000):
@@ -266,3 +287,11 @@ def parse_affil(affil_text):
     if dict_out["country"] == "":
         dict_out["country"] = check_country(affil_text)  # check country
     return dict_out
+
+
+if __name__ == '__main__':
+    print(parse_affil("New York, New York")["us_city"])
+    print(parse_affil("New York, NY")["us_city"])
+    print(parse_affil("Rochester, New York")["us_city"])
+    print(parse_affil("University of New York, Rochester, New York")["us_city"])
+    print(parse_affil("Rochester, NY")["us_city"])
