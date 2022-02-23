@@ -15,5 +15,9 @@ if __name__ == "__main__":
         license="(c) 2015 Titipat Achakulvisut",
         keywords="parser affilation",
         install_requires=["numpy", "unidecode", "nltk", "recordlinkage"],
-        packages=["affiliation_parser"],
+        packages=[
+            "affiliation_parser",
+            "affiliation_parser.data",
+        ],
+        include_package_data=True,
     )

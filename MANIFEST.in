@@ -1,0 +1,2 @@
+include affiliation_parser/data/uscities_trimmed.csv
+include affiliation_parser/data/uscities_top_1000.csv
