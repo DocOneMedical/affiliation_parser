@@ -3,8 +3,8 @@ import re
 import string
 from unidecode import unidecode
 import numpy as np
-from affiliation_parser.keywords import *
-from affiliation_parser.data_processor import us_cities, us_state_cities_map, us_city_pop_map
+from .keywords import *
+from .data_processor import us_cities, us_state_cities_map, us_city_pop_map
 from nltk.tokenize import WhitespaceTokenizer
 import pandas as pd
 import os
