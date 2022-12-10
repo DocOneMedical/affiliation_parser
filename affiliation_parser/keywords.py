@@ -252,6 +252,7 @@ INSTITUTE = frozenset(
         "biotechnologies",
         "anaerobe systems",
         "nhs trust",
+        "public school"
     ]
 )
 
@@ -615,6 +616,8 @@ STATE_MAP = {
     'Wisconsin': 'WI',
     'Wyoming': 'WY'
 }
+
+INVERSE_STATE_MAP = {v:k for k,v in STATE_MAP.items()}
 
 # full name and abbreviation
 UNIVERSITY_ABBR = (

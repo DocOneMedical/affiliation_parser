@@ -6,6 +6,8 @@ import numpy as np
 from affiliation_parser.keywords import *
 from affiliation_parser.data_processor import us_cities, us_state_cities_map, us_city_pop_map
 from nltk.tokenize import WhitespaceTokenizer
+import pandas as pd
+import os
 
 w_tokenizer = WhitespaceTokenizer()
 punct_re = re.compile("[{}]".format(re.escape(string.punctuation)))
@@ -17,6 +19,11 @@ US_CITIES_POP_MAP = us_city_pop_map()
 US_STATE_CITY_MAP = us_state_cities_map()
 MAX_WORDS = max(len(s.split()) for s in US_CITIES)
 
+path = "/".join(os.path.abspath(__file__).split('/')[:-1])
+hospital_df = pd.read_csv(path + '/data/hospital_npi.csv')
+grid_df = pd.read_csv(path + '/data/grid.csv')
+HOSPITAL_NAME = set(hospital_df['institution'].tolist())
+HOSPITAL_NAME = HOSPITAL_NAME.union(set(grid_df['institution'].tolist()))
 
 def string_steps(s: str, max_size=MAX_WORDS):
     string_words = s.upper().replace(',', '').replace('.', '').split()
@@ -244,7 +251,14 @@ def parse_affil(affil_text):
         for ins in INSTITUTE:
             if ins in a.lower() and (not a in affil):
                 affil.append(a)
-                location = affil_list[i + 1 : :]
+                location = affil_list[i + 1:]
+        
+        if a.upper() in HOSPITAL_NAME and (not a in affil):
+            affil.append(a)
+            location = affil_list[i + 1:]
+    
+    if len(affil) == 0:
+        location = affil_list[-3:]
 
     # remove unwanted from affliation list and location list
     pop_index = list()
@@ -261,25 +275,25 @@ def parse_affil(affil_text):
                 pop_index.append(i)
     location = np.delete(location, list(set(pop_index))).tolist()
 
-    affil = ", ".join(affil)
+    affil = affil
     location = ", ".join(location)
     if location == "":
         location = affil_text.split(", ")[-1]
-    location = re.sub(r"\([^)]*\)", "", location).strip()
+    # location = re.sub(r"\([^)]*\)", "", location).strip()
 
     for i, a in enumerate(affil_list):
         for dep in DEPARMENT:
             if dep in a.lower() and (not a in departments):
                 departments.append(affil_list[i])
-    department = ", ".join(departments)
+    department = departments
 
     dict_location = parse_location(affil_text.strip(), location)
-    affil = append_institution_city(affil, dict_location["location"])
+    affil = [append_institution_city(af, dict_location["location"]) for af in affil]
 
     dict_out = {
         "full_text": affil_text.strip(),
-        "department": department.strip(),
-        "institution": affil.strip(),
+        "department": department,
+        "institution": affil,
         "email": email,
         "zipcode": zip_code,
     }
