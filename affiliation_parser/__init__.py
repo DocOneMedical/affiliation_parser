@@ -1,6 +1,5 @@
-from .utils import download_grid_data
+# from .utils import download_grid_data
 from .parse import parse_affil, parse_email, parse_zipcode
-from .matcher import match_affil
 import re
 
 

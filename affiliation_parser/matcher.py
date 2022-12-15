@@ -8,32 +8,32 @@ from recordlinkage.index import Full
 
 import numpy as np
 import pandas as pd
-from nltk.tokenize import WhitespaceTokenizer
+# from nltk.tokenize import WhitespaceTokenizer
 
 from .utils import download_grid_data
 from .parse import parse_affil, preprocess
 from .parse import hospital_df
 
 
-path = Path(os.getenv("~", '~/.affliation_parser')).expanduser()
-grid_path = (path/"grid")
-if not grid_path.exists():
-    download_grid_data()
-grid_df = pd.read_csv(grid_path/"grid.csv", header=0,
-                      names=["grid_id", "institution", "city", "state", "country"])
-grid_df = grid_df[grid_df['country'] == "United States"]
-grid_df['institution'] = grid_df['institution'].str.replace(" (United States)", "", regex=False)
-grid_df = pd.concat([grid_df, hospital_df], ignore_index=True)
-grid_df["location"] = grid_df.city + " " + grid_df.state
-grid_df['institution'] = grid_df['institution'].str.lower()
-grid_df = grid_df.drop_duplicates(subset=['institution'])
-del grid_df['Unnamed: 0']
+# path = Path(os.getenv("~", '~/.affliation_parser')).expanduser()
+# grid_path = (path/"grid")
+# if not grid_path.exists():
+#     download_grid_data()
+# grid_df = pd.read_csv(grid_path/"grid.csv", header=0,
+#                       names=["grid_id", "institution", "city", "state", "country"])
+# grid_df = grid_df[grid_df['country'] == "United States"]
+# grid_df['institution'] = grid_df['institution'].str.replace(" (United States)", "", regex=False)
+# grid_df = pd.concat([grid_df, hospital_df], ignore_index=True)
+# grid_df["location"] = grid_df.city + " " + grid_df.state
+# grid_df['institution'] = grid_df['institution'].str.lower()
+# grid_df = grid_df.drop_duplicates(subset=['institution'])
+# del grid_df['Unnamed: 0']
 
-# recordlinkage comparer
-compare = recordlinkage.Compare()
-compare.string("institution", "institution", method="levenshtein")
-compare.string("location", "location", method="jarowinkler")
-compare.string("country", "country", method="jarowinkler")
+# # recordlinkage comparer
+# compare = recordlinkage.Compare()
+# compare.string("institution", "institution", method="levenshtein")
+# compare.string("location", "location", method="jarowinkler")
+# compare.string("country", "country", method="jarowinkler")
 
 def match_affil(affiliation: str, k: int = 3):
     """

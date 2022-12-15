@@ -5,11 +5,13 @@ from unidecode import unidecode
 import numpy as np
 from .keywords import *
 from .data_processor import us_cities, us_state_cities_map, us_city_pop_map
-from nltk.tokenize import WhitespaceTokenizer
+# from nltk.tokenize import WhitespaceTokenizer
 import pandas as pd
 import os
+import logging
 
-w_tokenizer = WhitespaceTokenizer()
+logger = logging.getLogger(__name__)
+# w_tokenizer = WhitespaceTokenizer()
 punct_re = re.compile("[{}]".format(re.escape(string.punctuation)))
 
 US_CITIES = us_cities()
@@ -18,12 +20,17 @@ US_CITIES_TOP_2000 = set(US_CITIES[:1000])
 US_CITIES_POP_MAP = us_city_pop_map()
 US_STATE_CITY_MAP = us_state_cities_map()
 MAX_WORDS = max(len(s.split()) for s in US_CITIES)
+logger.warning("finish cities")
+
 
 path = "/".join(os.path.abspath(__file__).split('/')[:-1])
 hospital_df = pd.read_csv(path + '/data/hospital_npi.csv')
 grid_df = pd.read_csv(path + '/data/grid.csv')
 HOSPITAL_NAME = set(hospital_df['institution'].tolist())
 HOSPITAL_NAME = HOSPITAL_NAME.union(set(grid_df['institution'].tolist()))
+HOSPITAL_NAME = set()
+logger.warning("finish hospital")
+
 
 def string_steps(s: str, max_size=MAX_WORDS):
     string_words = s.upper().replace(',', '').replace('.', '').split()
@@ -48,7 +55,7 @@ def preprocess(text: str):
     else:
         text = unidecode(text).lower()
         text = punct_re.sub(" ", text)  # remove punctuation
-        text_preprocess = " ".join(w_tokenizer.tokenize(text))
+        text_preprocess = " ".join(text.split())
     return text_preprocess
 
 
