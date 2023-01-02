@@ -249,7 +249,7 @@ def parse_affil(affil_text):
     affil_text = re.sub(email, "", affil_text)
     affil_text = re.sub(zip_code, "", affil_text)
 
-    affil_list = affil_text.split(", ")
+    affil_list = re.split(r",\s|\/", affil_text)
     affil = list()
     location = list()
     departments = list()
